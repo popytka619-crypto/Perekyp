@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Калькулятор перекупа</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;800&display=swap">
+<style>
+:root{--bg:#eceee9;--card:#fff;--ink:#1b2320;--muted:#66706b;--chip:#dde3de;--pos:#17724f;--neg:#b3402f;--line:#d3d9d4;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#131917;--card:#1c2421;--ink:#e8eee9;--muted:#93a09a;--chip:#2a3430;--pos:#4cc79a;--neg:#ec8070;--line:#2f3a36}}
+:root[data-theme="dark"]{--bg:#131917;--card:#1c2421;--ink:#e8eee9;--muted:#93a09a;--chip:#2a3430;--pos:#4cc79a;--neg:#ec8070;--line:#2f3a36}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Manrope,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;line-height:1.4}
+main{max-width:460px;margin:0 auto;padding:20px 16px 40px}
+h1{font-size:22px;font-weight:800;margin:0 0 18px}
+label{display:block;font-weight:600;font-size:14px;margin:14px 0 6px}
+input{width:100%;font:inherit;font-size:20px;font-weight:600;padding:13px 14px;border:1.5px solid var(--line);border-radius:12px;background:var(--card);color:var(--ink)}
+input:focus-visible,button:focus-visible{outline:2px solid var(--pos);outline-offset:2px}
+.hint{color:var(--muted);font-size:13px;margin-top:5px}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{font:inherit;font-weight:600;padding:10px 14px;border:0;border-radius:999px;background:var(--chip);color:var(--ink)}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.res{margin-top:22px;padding:18px;background:var(--card);border-radius:16px}
+.big{font-size:38px;font-weight:800;line-height:1.1;margin:2px 0 12px;word-break:break-word}
+.pos{color:var(--pos)}.neg{color:var(--neg)}
+.row{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-top:1px solid var(--line);font-size:15px}
+.row span:first-child{color:var(--muted)}
+.save{width:100%;margin-top:16px;font:inherit;font-weight:800;font-size:16px;padding:14px;border:0;border-radius:12px;background:var(--pos);color:var(--card)}
+.save:disabled{opacity:.4}
+h2{font-size:17px;font-weight:800;margin:28px 0 4px}
+.total{color:var(--muted);font-size:14px;margin-bottom:8px}
+.deal{display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-top:1px solid var(--line);font-size:14px}
+.deal small{display:block;color:var(--muted)}
+.clear{margin-top:12px;font:inherit;background:none;border:0;color:var(--muted);text-decoration:underline;padding:6px 0}
+</style>
+</head>
+<body>
+<main>
+<h1>Калькулятор перекупа</h1>
+
+<label for="buy">Купил за</label>
+<input id="buy" type="text" inputmode="text" autocomplete="off" placeholder="500к">
+<div class="hint">Можно писать 500000, 500к или 1.5кк</div>
+
+<label for="sell">Продал за</label>
+<input id="sell" type="text" inputmode="text" autocomplete="off" placeholder="650к">
+
+<label>Комиссия при продаже</label>
+<div class="chips" id="chips"></div>
+
+<div class="res">
+<div>Прибыль</div>
+<div class="big" id="profit">—</div>
+<div class="row"><span>Доходность</span><span id="roi">—</span></div>
+<div class="row"><span>Продавать не дешевле</span><span id="be">—</span></div>
+<button class="save" id="save" disabled>Сохранить сделку</button>
+</div>
+
+<h2>Мои сделки</h2>
+<div class="total" id="total">Пока пусто. Посчитайте сделку и сохраните её.</div>
+<div id="list"></div>
+<button class="clear" id="clear" hidden>Очистить список</button>
+</main>
+
+<script>
+var FEES=[0,3,5,10,15],fee=0,deals=[],cur=null;
+var $=function(i){return document.getElementById(i)};
+function load(k,d){try{var v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}}
+function store(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+function parse(s){
+  var m=/^(\d+(?:\.\d+)?)(кк|kk|к|k)?$/.exec(String(s).toLowerCase().replace(/\s/g,"").replace(",","."));
+  if(!m)return null;
+  var v=parseFloat(m[1]);
+  if(m[2]==="кк"||m[2]==="kk")v*=1e6;else if(m[2]==="к"||m[2]==="k")v*=1e3;
+  return v>0?v:null;
+}
+function fmt(x){return Math.round(x).toLocaleString("ru-RU")}
+function renderChips(){
+  $("chips").innerHTML="";
+  FEES.forEach(function(p){
+    var b=document.createElement("button");
+    b.className="chip";b.textContent=p+"%";
+    b.setAttribute("aria-pressed",p===fee?"true":"false");
+    b.onclick=function(){fee=p;store("fee",fee);renderChips();calc()};
+    $("chips").appendChild(b);
+  });
+}
+function calc(){
+  var buy=parse($("buy").value),sell=parse($("sell").value);
+  var p=$("profit");
+  if(!buy||!sell){cur=null;p.textContent="—";p.className="big";$("roi").textContent="—";$("be").textContent="—";$("save").disabled=true;return}
+  var profit=sell*(1-fee/100)-buy;
+  cur={buy:buy,sell:sell,fee:fee,profit:profit};
+  p.textContent=(profit>=0?"+":"−")+fmt(Math.abs(profit));
+  p.className="big "+(profit>=0?"pos":"neg");
+  $("roi").textContent=(profit/buy*100).toFixed(1)+"%";
+  $("be").textContent=fmt(buy/(1-fee/100));
+  $("save").disabled=false;
+}
+function renderDeals(){
+  var l=$("list");l.innerHTML="";
+  $("clear").hidden=!deals.length;
+  if(!deals.length){$("total").textContent="Пока пусто. Посчитайте сделку и сохраните её.";return}
+  var sum=0;
+  deals.forEach(function(d){
+    sum+=d.profit;
+    var r=document.createElement("div");r.className="deal";
+    var a=document.createElement("div");
+    a.innerHTML="Купил "+fmt(d.buy)+"<small>Продал "+fmt(d.sell)+", комиссия "+d.fee+"%</small>";
+    var b=document.createElement("strong");
+    b.className=d.profit>=0?"pos":"neg";
+    b.textContent=(d.profit>=0?"+":"−")+fmt(Math.abs(d.profit));
+    r.appendChild(a);r.appendChild(b);l.appendChild(r);
+  });
+  $("total").textContent="Сделок: "+deals.length+". Итого: "+(sum>=0?"+":"−")+fmt(Math.abs(sum));
+}
+$("buy").oninput=calc;$("sell").oninput=calc;
+$("save").onclick=function(){
+  if(!cur)return;
+  deals.unshift(cur);deals=deals.slice(0,30);store("deals",deals);renderDeals();
+  $("buy").value="";$("sell").value="";calc();$("buy").focus();
+};
+$("clear").onclick=function(){deals=[];store("deals",deals);renderDeals()};
+fee=load("fee",0);if(FEES.indexOf(fee)<0)fee=0;
+deals=load("deals",[]);if(!Array.isArray(deals))deals=[];
+renderChips();renderDeals();calc();
+</script>
+</body>
+</html>
