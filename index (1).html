@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Учёт перекупа</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;800&display=swap">
+<style>
+:root{--bg:#f3f0ff;--card:#fff;--ink:#1d1640;--muted:#6b6591;--chip:#e6e0ff;--brand:#6c3df4;--pos:#00a86b;--neg:#f0304f;--line:#d9d0ff;--sun:#ffc933;box-sizing:border-box}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#16112e;--card:#251d4d;--ink:#f1edff;--muted:#a59fd0;--chip:#33295f;--brand:#7a55ff;--pos:#2ee59d;--neg:#ff6b86;--line:#3b3070}}
+:root[data-theme="dark"]{--bg:#16112e;--card:#251d4d;--ink:#f1edff;--muted:#a59fd0;--chip:#33295f;--brand:#7a55ff;--pos:#2ee59d;--neg:#ff6b86;--line:#3b3070}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Manrope,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;line-height:1.4}
+.hero{background:var(--brand);color:#fff;padding:calc(env(safe-area-inset-top,0px) + 16px) 18px 18px;border-radius:0 0 26px 26px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.hero b{font-size:21px;font-weight:800}
+.hero span{background:var(--sun);color:#1d1640;font-size:12px;font-weight:800;padding:5px 12px;border-radius:999px}
+main{max-width:460px;margin:0 auto;padding:22px 16px 100px}
+section[hidden],[hidden]{display:none!important}
+h1{font-size:22px;font-weight:800;margin:0 0 14px}
+label{display:block;font-weight:700;font-size:14px;margin:14px 0 6px}
+input,select{font:inherit;font-size:18px;font-weight:600;padding:13px 14px;border:2px solid var(--line);border-radius:14px;background:var(--card);color:var(--ink)}
+input{width:100%}
+input:focus,select:focus{outline:none;border-color:var(--brand)}
+button:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
+.hint{color:var(--muted);font-size:13px;margin-top:5px}
+.frow{display:flex;gap:8px;margin-top:8px}
+.frow select{width:78px;background:var(--chip);border-color:var(--chip);color:var(--brand)}
+.btn{width:100%;margin-top:16px;font:inherit;font-weight:800;font-size:17px;padding:15px;border:0;border-radius:14px;background:var(--brand);color:#fff}
+button:disabled{opacity:.4}
+.item{background:var(--card);border-radius:16px;padding:14px 14px 12px 16px;margin-bottom:12px;border-left:7px solid var(--sun)}
+#soldList .item{border-left-color:var(--pos)}
+.top{display:flex;justify-content:space-between;gap:10px;font-size:17px}
+.top span{font-weight:800;color:var(--brand)}
+.item small{display:block;color:var(--muted);font-size:13px;margin-top:2px}
+.item .ps{margin-top:10px}
+.pv{font-weight:800;font-size:22px;margin-top:10px}
+.pos{color:var(--pos)}.neg{color:var(--neg)}
+.acts{display:flex;gap:12px;align-items:center;margin-top:8px}
+.acts .btn{width:auto;margin:0;padding:12px 28px;font-size:16px;background:var(--pos);color:#fff}
+.lnk{font:inherit;font-size:14px;background:none;border:0;color:var(--muted);text-decoration:underline;padding:6px 0}
+.empty{color:var(--muted);font-size:15px;padding:8px 0}
+.sub{color:var(--muted);font-size:14px;margin:-8px 0 12px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.stat{border-radius:18px;padding:16px;color:#fff}
+.stat:nth-child(1){background:#6c3df4}.stat:nth-child(2){background:#0a84ff}.stat:nth-child(3){background:#ff7a00}.stat:nth-child(4){background:#00a86b}
+.stat span{font-size:14px;font-weight:600;opacity:.9}
+.stat b{display:block;font-size:22px;font-weight:800;margin:6px 0 2px;word-break:break-word;color:#fff!important}
+.stat small{font-size:13px;color:#fff;opacity:.9}
+.tabs{position:fixed;left:0;right:0;bottom:0;display:grid;grid-template-columns:repeat(4,1fr);background:var(--card);border-top:2px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
+.tabs button{font:inherit;font-size:13px;font-weight:700;padding:15px 2px;border:0;background:none;color:var(--muted)}
+.tabs button[aria-selected="true"]{color:var(--brand);box-shadow:inset 0 4px 0 var(--brand)}
+</style>
+</head>
+<body>
+<div class="hero"><b>Учёт перекупа</b><span>Black Russia</span></div>
+<main id="app">
+
+<section id="p-add">
+<h1>Новая покупка</h1>
+<label for="name">Название</label>
+<input id="name" type="text" maxlength="40" placeholder="Например, Infernus">
+<label for="buy">Купил за</label>
+<input id="buy" type="text" inputmode="text" autocomplete="off" placeholder="500к">
+<div class="hint">Можно писать 500000, 500к или 1.5кк</div>
+<button class="btn" id="add" disabled>В ожидание</button>
+</section>
+
+<section id="p-wait" hidden>
+<h1>В ожидании</h1>
+<div class="sub" id="waitSum"></div>
+<div id="waitList"></div>
+</section>
+
+<section id="p-sold" hidden>
+<h1>Продано</h1>
+<div id="soldList"></div>
+</section>
+
+<section id="p-stats" hidden>
+<h1>Прибыль</h1>
+<div class="grid" id="stats"></div>
+<div class="sub" id="pend" style="margin-top:14px"></div>
+</section>
+
+</main>
+
+<nav class="tabs" id="tabs">
+<button data-tab="add" aria-selected="true">Добавить</button>
+<button data-tab="wait" aria-selected="false">Ожидание</button>
+<button data-tab="sold" aria-selected="false">Продано</button>
+<button data-tab="stats" aria-selected="false">Прибыль</button>
+</nav>
+
+<script>
+var KEY="perekup2",S={items:[],fee:"",ft:"%"},delId=null;
+var $=function(i){return document.getElementById(i)};
+function load(){try{var v=JSON.parse(localStorage.getItem(KEY));if(v&&Array.isArray(v.items))S=v}catch(e){}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+function parse(s,z){
+  var m=/^(\d+(?:\.\d+)?)(кк|kk|к|k)?$/.exec(String(s).toLowerCase().replace(/\s/g,"").replace(",","."));
+  if(!m)return null;
+  var v=parseFloat(m[1]);
+  if(m[2]==="кк"||m[2]==="kk")v*=1e6;else if(m[2]==="к"||m[2]==="k")v*=1e3;
+  return(v>0||(z&&v===0))?v:null;
+}
+function fmt(x){return Math.round(x).toLocaleString("ru-RU")}
+function sgn(x){return(x>=0?"+":"−")+fmt(Math.abs(x))}
+function cls(x){return x>=0?"pos":"neg"}
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+function feeVal(s,t){s=String(s).trim();var v=s===""?0:parse(s,true);if(v!==null&&t==="%"&&v>=100)return null;return v}
+function feeOf(sell,v,t){return t==="%"?sell*v/100:v}
+function feeTxt(i){return i.ft==="%"?i.fee+"%":fmt(i.fee)+" ₽"}
+function dt(ts){return new Date(ts).toLocaleDateString("ru-RU",{day:"numeric",month:"short"})}
+function sel(t){return'<select class="pt" aria-label="Тип комиссии"><option value="%"'+(t==="%"?" selected":"")+'>%</option><option value="₽"'+(t==="₽"?" selected":"")+'>₽</option></select>'}
+function find(id){return S.items.filter(function(i){return i.id===id})[0]}
+function field(c,k){return c.querySelector(k)}
+
+function upd(c){
+  var it=find(Number(c.dataset.id));if(!it)return;
+  var s=parse(field(c,".ps").value),t=field(c,".pt").value,f=feeVal(field(c,".pf").value,t),ok=!!s&&f!==null,pv=field(c,".pv");
+  field(c,".ok").hidden=!ok;
+  if(ok){var pr=s-feeOf(s,f,t)-it.buy;pv.textContent="Прибыль: "+sgn(pr);pv.className="pv "+cls(pr)}
+  else{pv.textContent="";pv.className="pv"}
+}
+function renderWait(){
+  var w=S.items.filter(function(i){return i.st==="w"}),h="",sum=0;
+  w.forEach(function(i){
+    sum+=i.buy;
+    var df=i.df!==undefined?i.df:S.fee,tp=i.dt||S.ft;
+    h+='<div class="item" data-id="'+i.id+'"><div class="top"><b>'+esc(i.name||"Без названия")+'</b><span>'+fmt(i.buy)+'</span></div><small>Куплено '+dt(i.t)+'</small>'+
+    '<input class="ps" type="text" inputmode="text" autocomplete="off" placeholder="Продал за" value="'+esc(i.ds||"")+'">'+
+    '<div class="frow"><input class="pf" type="text" inputmode="text" autocomplete="off" placeholder="Комиссия" value="'+esc(df)+'">'+sel(tp)+'</div>'+
+    '<div class="pv"></div>'+
+    '<div class="acts"><button class="btn ok" data-a="ok" hidden>Продать</button><button class="lnk" data-a="del" data-id="'+i.id+'">'+(delId===i.id?"Точно удалить?":"Удалить")+'</button></div></div>';
+  });
+  $("waitList").innerHTML=h||'<div class="empty">Пока пусто. Добавьте покупку на первой вкладке.</div>';
+  $("waitSum").textContent=w.length?"Машин: "+w.length+". Вложено: "+fmt(sum):"";
+  Array.prototype.forEach.call(document.querySelectorAll("#waitList .item"),upd);
+}
+function renderSold(){
+  var s=S.items.filter(function(i){return i.st==="s"}).sort(function(a,b){return b.d-a.d}),h="";
+  s.forEach(function(i){
+    h+='<div class="item"><div class="top"><b>'+esc(i.name||"Без названия")+'</b><b class="'+cls(i.pr)+'">'+sgn(i.pr)+'</b></div><small>Купил '+fmt(i.buy)+', продал '+fmt(i.sell)+'</small><small>Комиссия '+feeTxt(i)+', '+dt(i.d)+'</small><button class="lnk" data-a="del" data-id="'+i.id+'">'+(delId===i.id?"Точно удалить?":"Удалить")+'</button></div>';
+  });
+  $("soldList").innerHTML=h||'<div class="empty">Проданных сделок пока нет.</div>';
+}
+function renderStats(){
+  var n=new Date(),D=864e5,d0=new Date(n.getFullYear(),n.getMonth(),n.getDate()).getTime(),now=n.getTime();
+  var P=[["Сегодня",d0],["7 дней",now-7*D],["30 дней",now-30*D],["Всё время",0]];
+  var sold=S.items.filter(function(i){return i.st==="s"}),h="";
+  P.forEach(function(p){
+    var sum=0,c=0;
+    sold.forEach(function(i){if(i.d>=p[1]){sum+=i.pr;c++}});
+    h+='<div class="stat"><span>'+p[0]+'</span><b class="'+cls(sum)+'">'+sgn(sum)+'</b><small>Сделок: '+c+'</small></div>';
+  });
+  $("stats").innerHTML=h;
+  var w=S.items.filter(function(i){return i.st==="w"}),ws=0;
+  w.forEach(function(i){ws+=i.buy});
+  $("pend").textContent="В ожидании: "+w.length+", вложено "+fmt(ws);
+}
+function render(){renderWait();renderSold();renderStats()}
+function go(t){
+  delId=null;render();
+  ["add","wait","sold","stats"].forEach(function(k){$("p-"+k).hidden=k!==t});
+  var b=$("tabs").children;
+  for(var i=0;i<b.length;i++)b[i].setAttribute("aria-selected",b[i].dataset.tab===t?"true":"false");
+  window.scrollTo(0,0);
+}
+
+$("buy").oninput=function(){$("add").disabled=!parse($("buy").value)};
+$("add").onclick=function(){
+  var b=parse($("buy").value);if(!b)return;
+  S.items.unshift({id:Date.now(),name:$("name").value.trim(),buy:b,st:"w",t:Date.now()});
+  save();$("name").value="";$("buy").value="";$("add").disabled=true;go("wait");
+};
+function onEdit(e){
+  var c=e.target.closest(".item");if(!c)return;
+  var it=find(Number(c.dataset.id));if(!it)return;
+  it.ds=field(c,".ps").value;it.df=field(c,".pf").value;it.dt=field(c,".pt").value;
+  save();upd(c);
+}
+$("waitList").addEventListener("input",onEdit);
+$("waitList").addEventListener("change",onEdit);
+$("app").onclick=function(e){
+  var el=e.target.closest("[data-a]");if(!el)return;
+  var a=el.dataset.a;
+  if(a==="del"){
+    var id=Number(el.dataset.id);
+    if(delId===id){S.items=S.items.filter(function(i){return i.id!==id});delId=null;save();render()}
+    else{delId=id;render()}
+  }else if(a==="ok"){
+    var c=el.closest(".item"),it=find(Number(c.dataset.id));if(!it)return;
+    var s=parse(field(c,".ps").value),t=field(c,".pt").value,f=feeVal(field(c,".pf").value,t);
+    if(!s||f===null)return;
+    it.st="s";it.sell=s;it.fee=f;it.ft=t;it.pr=s-feeOf(s,f,t)-it.buy;it.d=Date.now();
+    S.fee=field(c,".pf").value;S.ft=t;
+    delete it.ds;delete it.df;delete it.dt;
+    save();render();
+  }
+};
+$("tabs").onclick=function(e){var b=e.target.closest("[data-tab]");if(b)go(b.dataset.tab)};
+
+load();
+render();
+</script>
+</body>
+</html>
